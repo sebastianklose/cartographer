@@ -1,0 +1,50 @@
+// Copyright 2018 The Cartographer Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+syntax = "proto3";
+
+package cartographer.mapping.proto;
+
+// Header defining the serialization format.
+message SerializationHeader {
+  message Version {
+    int32 major = 1;
+    int32 minor = 2;
+    int32 patch = 3;
+  }
+
+  message LayoutEntry {
+    enum DataType { DATA_TYPE_UNSPECIFIED = 0; }
+    DataType type = 1;  // Type of the message.
+    int64 offset = 2;   // Byte offset in file.
+    int64 count = 3;    // Number of repeated entries.
+  }
+
+  // Cartographer version.
+  Version cartographer_version = 1;
+
+  // The sequence of layout entries defines the payload layout.
+  repeated LayoutEntry payload_layout = 2;
+}
+
+message Payload {
+  oneof data {
+    Submap submap = 1;
+    Node node = 2;
+    ImuData imu_data = 3;
+    OdometryData odometry_data = 4;
+    FixedFramePoseData fixed_frame_pose_data = 5;
+    TrajectoryData trajectory_data = 6;
+    LandmarkData landmark_data = 7;
+  }
+}
