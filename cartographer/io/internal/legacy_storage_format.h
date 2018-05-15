@@ -28,12 +28,11 @@ namespace io {
 
 // Serialize mapping state to a pbstream file.
 void ToLegacyFormat(
-    /*TODO: const*/ mapping::PoseGraph& pose_graph,
+    const mapping::PoseGraph& pose_graph,
     const mapping::proto::AllTrajectoryBuilderOptions& builder_options,
     ProtoStreamWriterInterface* const writer);
 
 // De-serialize a pbstream file to a valid mapping state.
-// TODO(klose): Document return type and switch to StatusOr if possible.
 void FromLegacyFormat(ProtoStreamReaderInterface* const reader,
                       bool load_frozen_state,
                       mapping::MapBuilderInterface* map_builder,

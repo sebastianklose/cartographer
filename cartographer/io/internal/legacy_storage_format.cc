@@ -21,7 +21,7 @@
 namespace cartographer {
 namespace io {
 void ToLegacyFormat(
-    /*TODO(klose): const*/ mapping::PoseGraph& pose_graph,
+    const mapping::PoseGraph& pose_graph,
     const mapping::proto::AllTrajectoryBuilderOptions& builder_options,
     ProtoStreamWriterInterface* const writer) {
   // We serialize the pose graph followed by all the data referenced in it.
