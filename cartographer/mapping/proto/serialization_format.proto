@@ -1,0 +1,45 @@
+// Copyright 2018 The Cartographer Authors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//      http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+syntax = "proto3";
+
+package cartographer.mapping.proto;
+
+import "cartographer/mapping/proto/pose_graph.proto";
+import "cartographer/mapping/proto/serialization.proto";
+import "cartographer/mapping/proto/trajectory_builder_options.proto";
+
+// Header defining the serialization format. At the moment it only contains the
+// version of the serialization format.
+//
+// The file layout will always be as follows:
+//  [Header][Payload_0][Payload_1][Payload_2][...]
+//
+// With Payload being protos as defined below.
+message SerializationHeader {
+  string format_version = 1;
+}
+
+message Payload {
+  oneof data {
+    PoseGraph pose_graph = 1;
+    AllTrajectoryBuilderOptions all_trajectory_builder_options = 2;
+    Submap submap = 3;
+    Node node = 4;
+    ImuData imu_data = 5;
+    OdometryData odometry_data = 6;
+    FixedFramePoseData fixed_frame_pose_data = 7;
+    TrajectoryData trajectory_data = 8;
+    LandmarkData landmark_data = 9;
+  }
+}
