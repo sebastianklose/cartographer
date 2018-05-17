@@ -30,6 +30,7 @@ namespace {
 
 using common::make_unique;
 using google::protobuf::Message;
+using mapping::proto::AllTrajectoryBuilderOptions;
 using mapping::proto::PoseGraph;
 using mapping::proto::SerializedData;
 
@@ -41,12 +42,25 @@ std::unique_ptr<InMemoryProtoStreamReader> CreateInMemoryReaderFromTextProto(
   std::queue<std::unique_ptr<Message>> proto_queue;
   std::istringstream in_stream(file_string);
 
-  for (std::string pbtext; std::getline(in_stream, pbtext, kProtoDelim);) {
-    proto_queue.emplace(new Message());
-    CHECK(google::protobuf::TextFormat::ParseFromString(
-        pbtext, proto_queue.back().get()));
-  }
-  std::cout << "Loaded: " << proto_queue.size() << " protos";
+  // Parse the PoseGraph proto.
+  std::string proto_string;
+  proto_queue.push(make_unique<PoseGraph>());
+  std::getline(in_stream, proto_string, kProtoDelim);
+  CHECK(google::protobuf::TextFormat::ParseFromString(
+      proto_string, proto_queue.back().get()));
+
+  proto_queue.push(make_unique<AllTrajectoryBuilderOptions>());
+  std::getline(in_stream, proto_string, kProtoDelim);
+  CHECK(google::protobuf::TextFormat::ParseFromString(
+      proto_string, proto_queue.back().get()));
+
+  // Parse all the remaining SerializedData protos
+  // while (std::getline(in_stream, proto_string, kProtoDelim)) {
+  //  proto_queue.emplace(new Message());
+  //  CHECK(google::protobuf::TextFormat::ParseFromString(
+  //      proto_string, proto_queue.back().get()));
+  //}
+
   return make_unique<InMemoryProtoStreamReader>(std::move(proto_queue));
 }
 
