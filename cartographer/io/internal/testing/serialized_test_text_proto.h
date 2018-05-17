@@ -112,6 +112,36 @@ static const std::string kLegacyTextProto = R"(
       }
     }
   }
+#
+  node {
+    node_id {
+      trajectory_id: 0
+      node_index: 0
+    }
+    node_data {
+      timestamp: 0
+      local_pose {
+        translation {
+          x: 0.0
+          y: 0.0
+          z: 0.0
+        }
+        rotation {
+          x: 0.0
+          y: 0.0
+          z: 0.0
+          w: 1.0
+        }
+      }
+    }
+  }
+#
+  submap {
+    submap_id {
+    }
+    submap_2d {
+    }
+  }
 )";
 
 }  // namespace testing

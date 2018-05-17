@@ -18,10 +18,11 @@
 #include <sstream>
 
 #include "cartographer/io/internal/in_memory_proto_stream.h"
-#include "cartographer/io/internal/legacy_storage_format.h"
 #include "cartographer/io/internal/testing/serialized_test_text_proto.h"
+#include "cartographer/io/map_format_deserializer.h"
+#include "glog/logging.h"
+#include "gmock/gmock.h"
 #include "google/protobuf/text_format.h"
-
 #include "gtest/gtest.h"
 
 namespace cartographer {
@@ -33,6 +34,8 @@ using google::protobuf::Message;
 using mapping::proto::AllTrajectoryBuilderOptions;
 using mapping::proto::PoseGraph;
 using mapping::proto::SerializedData;
+using ::testing::Eq;
+using ::testing::Not;
 
 constexpr char kProtoDelim = '#';
 
@@ -55,24 +58,108 @@ std::unique_ptr<InMemoryProtoStreamReader> CreateInMemoryReaderFromTextProto(
       proto_string, proto_queue.back().get()));
 
   // Parse all the remaining SerializedData protos
-  // while (std::getline(in_stream, proto_string, kProtoDelim)) {
-  //  proto_queue.emplace(new Message());
-  //  CHECK(google::protobuf::TextFormat::ParseFromString(
-  //      proto_string, proto_queue.back().get()));
-  //}
-
+  while (std::getline(in_stream, proto_string, kProtoDelim)) {
+    proto_queue.push(make_unique<mapping::proto::SerializedData>());
+    CHECK(google::protobuf::TextFormat::ParseFromString(
+        proto_string, proto_queue.back().get()));
+  }
   return make_unique<InMemoryProtoStreamReader>(std::move(proto_queue));
 }
 
 // This test checks, if the serialization works.
-TEST(LegacyStorageFormatTest, FromLegacyFormatWorks) {
+TEST(LegacyStorageFormatTest, DeSerializationWorks) {
   // Load text proto into in_memory_reader.
-  auto reader = CreateInMemoryReaderFromTextProto(testing::kLegacyTextProto);
-  // deserialize with io::FromLegacyFormat(...)
-  // verify invariants.
+  std::unique_ptr<InMemoryProtoStreamReader> reader =
+      CreateInMemoryReaderFromTextProto(testing::kLegacyTextProto);
+
+  io::MapFormatDeserializer deserializer(reader.get());
+
+  const auto& pose_graph = deserializer.pose_graph();
+  // One constraint
+  ASSERT_THAT(pose_graph.constraint_size(), Eq(1));
+  const auto& constraint0 = pose_graph.constraint(0);
+  EXPECT_TRUE(constraint0.has_submap_id());
+  EXPECT_TRUE(constraint0.has_node_id());
+  EXPECT_TRUE(constraint0.has_relative_pose());
+
+  const auto& submap_id = constraint0.submap_id();
+  EXPECT_THAT(submap_id.trajectory_id(), Eq(0));
+  EXPECT_THAT(submap_id.submap_index(), Eq(0));
+
+  const auto& node_id = constraint0.node_id();
+  EXPECT_THAT(node_id.trajectory_id(), Eq(0));
+  EXPECT_THAT(node_id.node_index(), Eq(0));
+
+  const auto& relative_pose = constraint0.relative_pose();
+  EXPECT_THAT(relative_pose.translation().x(), Eq(0.0));
+  EXPECT_THAT(relative_pose.translation().y(), Eq(0.0));
+  EXPECT_THAT(relative_pose.translation().z(), Eq(0.0));
+  EXPECT_THAT(relative_pose.rotation().x(), Eq(0.0));
+  EXPECT_THAT(relative_pose.rotation().y(), Eq(0.0));
+  EXPECT_THAT(relative_pose.rotation().z(), Eq(0.0));
+  EXPECT_THAT(relative_pose.rotation().w(), Eq(1.0));
+
+  EXPECT_THAT(constraint0.translation_weight(), Eq(1.0));
+  EXPECT_THAT(constraint0.rotation_weight(), Eq(1.0));
+  EXPECT_THAT(constraint0.tag(),
+              Eq(mapping::proto::PoseGraph_Constraint_Tag_INTRA_SUBMAP));
+
+  // One trajectory
+  ASSERT_THAT(pose_graph.trajectory_size(), Eq(1));
+
+  const auto& trajectory_builder_options =
+      deserializer.all_trajectory_builder_options();
+  ASSERT_THAT(trajectory_builder_options.options_with_sensor_ids_size(), Eq(1));
+  const auto& options0 = trajectory_builder_options.options_with_sensor_ids(0);
+  ASSERT_THAT(options0.sensor_id_size(), Eq(2));
+  EXPECT_THAT(options0.sensor_id(0).type(),
+              Eq(mapping::proto::SensorId_SensorType_RANGE));
+  EXPECT_THAT(options0.sensor_id(0).id(), Eq("laser_scanner_0"));
+  EXPECT_THAT(options0.sensor_id(1).type(),
+              Eq(mapping::proto::SensorId_SensorType_IMU));
+  EXPECT_THAT(options0.sensor_id(1).id(), Eq("imu_0"));
+  EXPECT_THAT(options0.has_trajectory_builder_options(), Eq(true));
+  ASSERT_THAT(
+      options0.trajectory_builder_options().has_trajectory_builder_2d_options(),
+      Eq(true));
+  EXPECT_THAT(
+      options0.trajectory_builder_options().has_trajectory_builder_3d_options(),
+      Eq(false));
+
+  const auto& options_2d =
+      options0.trajectory_builder_options().trajectory_builder_2d_options();
+  EXPECT_THAT(options_2d.min_range(), Eq(0.1f));
+  EXPECT_THAT(options_2d.max_range(), Eq(40.0f));
+  EXPECT_THAT(options_2d.min_z(), Eq(0.0f));
+  EXPECT_THAT(options_2d.max_z(), Eq(2.0f));
+  EXPECT_THAT(options0.trajectory_builder_options().pure_localization(),
+              Eq(false));
+  const auto& initial_pose =
+      options0.trajectory_builder_options().initial_trajectory_pose();
+  EXPECT_THAT(initial_pose.relative_pose().translation().x(), Eq(0.0));
+  EXPECT_THAT(initial_pose.relative_pose().translation().y(), Eq(0.0));
+  EXPECT_THAT(initial_pose.relative_pose().translation().z(), Eq(0.0));
+  EXPECT_THAT(initial_pose.relative_pose().translation().x(), Eq(0.0));
+  EXPECT_THAT(initial_pose.relative_pose().rotation().x(), Eq(0.0));
+  EXPECT_THAT(initial_pose.relative_pose().rotation().y(), Eq(0.0));
+  EXPECT_THAT(initial_pose.relative_pose().rotation().z(), Eq(0.0));
+  EXPECT_THAT(initial_pose.relative_pose().rotation().w(), Eq(1.0));
+  EXPECT_THAT(initial_pose.to_trajectory_id(), Eq(0));
+  EXPECT_THAT(initial_pose.timestamp(), Eq(0));
+
+  auto serialized_data_it = deserializer.GetSerializedData().begin();
+  const auto serialized_data_end = deserializer.GetSerializedData().end();
+
+  ASSERT_THAT(serialized_data_it, Not(Eq(serialized_data_end)));
+  EXPECT_THAT(serialized_data_it->has_node(), Eq(true));
+  ++serialized_data_it;
+  EXPECT_THAT(serialized_data_it->has_submap(), Eq(true));
+  ++serialized_data_it;
+  ASSERT_THAT(serialized_data_it, Eq(serialized_data_end));
 }
 
-// This test checks, if the serialization works.
+// This tests that we are always able to parse, what we are writing, by
+// performing a round trip test.
 TEST(LegacyStorageFormatTest, ToLegacyFormatWorks) {
   // Load text proto
   // serialize with io::ToLegacyFormat(...)

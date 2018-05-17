@@ -13,32 +13,25 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef CARTOGRAPHER_IO_INTERNAL_LEGACY_FORMAT_H_
+#ifndef CARTOGRAPHER_IO_INTERNAL_POSE_GRAPH_SERIALIZATION_H_
 #define CARTOGRAPHER_IO_INTERNAL_PROTO_STREAM_H_
 
 #include "cartographer/io/proto_stream_interface.h"
-#include "cartographer/mapping/map_builder_interface.h"
 #include "cartographer/mapping/pose_graph.h"
 #include "cartographer/mapping/proto/trajectory_builder_options.pb.h"
 
-// Helper functions to serialize & deserialize the "legacy" format, which refers
-// to the last file format that did not include a `SerializationHeader`.
+// Helper function to serialize a PoseGraph to a protobuf stream.
 namespace cartographer {
 namespace io {
 
-// Serialize mapping state to a pbstream file.
-void ToLegacyFormat(
+// Serialize mapping state to a pbstream.
+void ToPbStream(
     const mapping::PoseGraph& pose_graph,
-    const mapping::proto::AllTrajectoryBuilderOptions& builder_options,
+    const std::vector<mapping::proto::TrajectoryBuilderOptionsWithSensorIds>&
+        builder_options,
     ProtoStreamWriterInterface* const writer);
-
-// De-serialize a pbstream file to a valid mapping state.
-void FromLegacyFormat(ProtoStreamReaderInterface* const reader,
-                      bool load_frozen_state,
-                      mapping::MapBuilderInterface* map_builder,
-                      mapping::PoseGraph* pose_graph);
 
 }  // namespace io
 }  // namespace cartographer
 
-#endif  // CARTOGRAPHER_IO_INTERNAL_PROTO_STREAM_H_
+#endif  // CARTOGRAPHER_IO_INTERNAL_POSE_GRAPH_SERIALIZATION_H_

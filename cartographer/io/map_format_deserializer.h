@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef CARTOGRAPHER_IO_MAP_FORMAT_PARSER_H_
-#define CARTOGRAPHER_IO_MAP_FORMAT_PARSER_H_
+#ifndef CARTOGRAPHER_IO_MAP_FORMAT_DESERIALIZER_H_
+#define CARTOGRAPHER_IO_MAP_FORMAT_DESERIALIZER_H_
 
 #include <iterator>
 
@@ -58,7 +58,11 @@ class SerializedDataIterator
            !google::protobuf::util::MessageDifferencer::Equals(data_,
                                                                rhs.data_);
   }
-  const mapping::proto::SerializedData& operator*() { return data_; }
+  const mapping::proto::SerializedData& operator*() const { return data_; }
+  mapping::proto::SerializedData& operator*() { return data_; }
+
+  const mapping::proto::SerializedData* operator->() const { return &data_; }
+  mapping::proto::SerializedData* operator->() { return &data_; }
 
  private:
   void ReadNext();
@@ -79,22 +83,24 @@ class SerializedDataRange {
   explicit SerializedDataRange(iterator begin) : begin_(begin), end_() {}
 
   iterator begin() const { return begin_; }
-  iterator end() const { return end_; }
+  const_iterator end() const { return end_; }
 
  private:
   const iterator begin_;
   const iterator end_;
 };
 
-// Class to help parsing a previously serialized mapping state.
-class MapFormatParser {
+// Class to help deserializing a previously serialized mapping state from a
+// stream.
+class MapFormatDeserializer {
  public:
-  explicit MapFormatParser(ProtoStreamReaderInterface* const reader);
+  explicit MapFormatDeserializer(ProtoStreamReaderInterface* const reader);
 
-  MapFormatParser(const MapFormatParser&) = delete;
-  MapFormatParser& operator=(const MapFormatParser&) = delete;
-  MapFormatParser(MapFormatParser&&) = delete;
+  MapFormatDeserializer(const MapFormatDeserializer&) = delete;
+  MapFormatDeserializer& operator=(const MapFormatDeserializer&) = delete;
+  MapFormatDeserializer(MapFormatDeserializer&&) = delete;
 
+  mapping::proto::PoseGraph& pose_graph() { return pose_graph_; }
   const mapping::proto::PoseGraph& pose_graph() const { return pose_graph_; }
 
   const mapping::proto::AllTrajectoryBuilderOptions&
@@ -106,15 +112,17 @@ class MapFormatParser {
   // stream. After one serializion pass, a subsequent call to
   // `GetSerializedData()` will return an empty range, because the stream has
   // already been completely read.
-  SerializedDataRange GetSerializedData();
+  SerializedDataRange GetSerializedData() { return serialized_data_range_; }
 
  private:
   ProtoStreamReaderInterface* reader_;
+
   mapping::proto::PoseGraph pose_graph_;
   mapping::proto::AllTrajectoryBuilderOptions all_trajectory_builder_options_;
+  const SerializedDataRange serialized_data_range_;
 };
 
 }  // namespace io
 }  // namespace cartographer
 
-#endif  // CARTOGRAPHER_IO_MAP_FORMAT_PARSER_H_
+#endif  // CARTOGRAPHER_IO_MAP_FORMAT_DESERIALIZER_H_

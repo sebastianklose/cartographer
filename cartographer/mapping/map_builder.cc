@@ -18,7 +18,8 @@
 
 #include "cartographer/common/make_unique.h"
 #include "cartographer/common/time.h"
-#include "cartographer/io/internal/legacy_storage_format.h"
+#include "cartographer/io/internal/pose_graph_serialization.h"
+#include "cartographer/io/map_format_deserializer.h"
 #include "cartographer/mapping/internal/2d/local_trajectory_builder_2d.h"
 #include "cartographer/mapping/internal/2d/overlapping_submaps_trimmer_2d.h"
 #include "cartographer/mapping/internal/2d/pose_graph_2d.h"
@@ -36,6 +37,9 @@ namespace cartographer {
 namespace mapping {
 
 namespace {
+
+using mapping::proto::SerializedData;
+
 std::vector<std::string> SelectRangeSensorIds(
     const std::set<MapBuilder::SensorId>& expected_sensor_ids) {
   std::vector<std::string> range_sensor_ids;
@@ -47,17 +51,6 @@ std::vector<std::string> SelectRangeSensorIds(
   return range_sensor_ids;
 }
 
-proto::AllTrajectoryBuilderOptions CreateAllTrajectoryBuilderProto(
-    const std::vector<proto::TrajectoryBuilderOptionsWithSensorIds>&
-        all_options_with_sensor_ids) {
-  proto::AllTrajectoryBuilderOptions all_options_proto;
-  for (const auto& options_with_sensor_ids : all_options_with_sensor_ids) {
-    *all_options_proto.add_options_with_sensor_ids() = options_with_sensor_ids;
-  }
-  CHECK_EQ(all_options_with_sensor_ids.size(),
-           all_options_proto.options_with_sensor_ids_size());
-  return all_options_proto;
-}
 }  // namespace
 
 proto::MapBuilderOptions CreateMapBuilderOptions(
@@ -212,14 +205,143 @@ std::string MapBuilder::SubmapToProto(
 }
 
 void MapBuilder::SerializeState(io::ProtoStreamWriterInterface* const writer) {
-  io::ToLegacyFormat(
-      *pose_graph_,
-      CreateAllTrajectoryBuilderProto(all_trajectory_builder_options_), writer);
+  io::ToPbStream(*pose_graph_, all_trajectory_builder_options_, writer);
 }
 
 void MapBuilder::LoadState(io::ProtoStreamReaderInterface* const reader,
                            bool load_frozen_state) {
-  io::FromLegacyFormat(reader, load_frozen_state, this, pose_graph_.get());
+  io::MapFormatDeserializer map_deserializer(reader);
+
+  // Create a copy of the pose_graph_proto, such that we can re-write the
+  // trajectory ids.
+  mapping::proto::PoseGraph pose_graph_proto = map_deserializer.pose_graph();
+  const auto& all_builder_options_proto =
+      map_deserializer.all_trajectory_builder_options();
+
+  std::map<int, int> trajectory_remapping;
+  for (auto& trajectory_proto : *pose_graph_proto.mutable_trajectory()) {
+    const auto& options_with_sensor_ids_proto =
+        all_builder_options_proto.options_with_sensor_ids(
+            trajectory_proto.trajectory_id());
+    const int new_trajectory_id =
+        AddTrajectoryForDeserialization(options_with_sensor_ids_proto);
+    CHECK(trajectory_remapping
+              .emplace(trajectory_proto.trajectory_id(), new_trajectory_id)
+              .second)
+        << "Duplicate trajectory ID: " << trajectory_proto.trajectory_id();
+    trajectory_proto.set_trajectory_id(new_trajectory_id);
+    if (load_frozen_state) {
+      pose_graph_->FreezeTrajectory(new_trajectory_id);
+    }
+  }
+
+  // Apply the calculated remapping to constraints in the pose graph proto.
+  for (auto& constraint_proto : *pose_graph_proto.mutable_constraint()) {
+    constraint_proto.mutable_submap_id()->set_trajectory_id(
+        trajectory_remapping.at(constraint_proto.submap_id().trajectory_id()));
+    constraint_proto.mutable_node_id()->set_trajectory_id(
+        trajectory_remapping.at(constraint_proto.node_id().trajectory_id()));
+  }
+
+  mapping::MapById<mapping::SubmapId, transform::Rigid3d> submap_poses;
+  for (const mapping::proto::Trajectory& trajectory_proto :
+       pose_graph_proto.trajectory()) {
+    for (const mapping::proto::Trajectory::Submap& submap_proto :
+         trajectory_proto.submap()) {
+      submap_poses.Insert(mapping::SubmapId{trajectory_proto.trajectory_id(),
+                                            submap_proto.submap_index()},
+                          transform::ToRigid3(submap_proto.pose()));
+    }
+  }
+
+  mapping::MapById<mapping::NodeId, transform::Rigid3d> node_poses;
+  for (const mapping::proto::Trajectory& trajectory_proto :
+       pose_graph_proto.trajectory()) {
+    for (const mapping::proto::Trajectory::Node& node_proto :
+         trajectory_proto.node()) {
+      node_poses.Insert(mapping::NodeId{trajectory_proto.trajectory_id(),
+                                        node_proto.node_index()},
+                        transform::ToRigid3(node_proto.pose()));
+    }
+  }
+
+  // Set global poses of landmarks.
+  for (const auto& landmark : pose_graph_proto.landmark_poses()) {
+    pose_graph_->SetLandmarkPose(landmark.landmark_id(),
+                                 transform::ToRigid3(landmark.global_pose()));
+  }
+
+  for (SerializedData& proto : map_deserializer.GetSerializedData()) {
+    if (proto.has_node()) {
+      proto.mutable_node()->mutable_node_id()->set_trajectory_id(
+          trajectory_remapping.at(proto.node().node_id().trajectory_id()));
+      const transform::Rigid3d node_pose =
+          node_poses.at(mapping::NodeId{proto.node().node_id().trajectory_id(),
+                                        proto.node().node_id().node_index()});
+      pose_graph_->AddNodeFromProto(node_pose, proto.node());
+    }
+    if (proto.has_submap()) {
+      proto.mutable_submap()->mutable_submap_id()->set_trajectory_id(
+          trajectory_remapping.at(proto.submap().submap_id().trajectory_id()));
+      const transform::Rigid3d submap_pose = submap_poses.at(
+          mapping::SubmapId{proto.submap().submap_id().trajectory_id(),
+                            proto.submap().submap_id().submap_index()});
+      pose_graph_->AddSubmapFromProto(submap_pose, proto.submap());
+    }
+    if (proto.has_trajectory_data()) {
+      proto.mutable_trajectory_data()->set_trajectory_id(
+          trajectory_remapping.at(proto.trajectory_data().trajectory_id()));
+      pose_graph_->SetTrajectoryDataFromProto(proto.trajectory_data());
+    }
+    if (!load_frozen_state) {
+      if (proto.has_imu_data()) {
+        pose_graph_->AddImuData(
+            trajectory_remapping.at(proto.imu_data().trajectory_id()),
+            sensor::FromProto(proto.imu_data().imu_data()));
+      }
+      if (proto.has_odometry_data()) {
+        pose_graph_->AddOdometryData(
+            trajectory_remapping.at(proto.odometry_data().trajectory_id()),
+            sensor::FromProto(proto.odometry_data().odometry_data()));
+      }
+      if (proto.has_fixed_frame_pose_data()) {
+        pose_graph_->AddFixedFramePoseData(
+            trajectory_remapping.at(
+                proto.fixed_frame_pose_data().trajectory_id()),
+            sensor::FromProto(
+                proto.fixed_frame_pose_data().fixed_frame_pose_data()));
+      }
+      if (proto.has_landmark_data()) {
+        pose_graph_->AddLandmarkData(
+            trajectory_remapping.at(proto.landmark_data().trajectory_id()),
+            sensor::FromProto(proto.landmark_data().landmark_data()));
+      }
+    }
+  }
+
+  if (load_frozen_state) {
+    // Add information about which nodes belong to which submap.
+    // Required for 3D pure localization.
+    for (const mapping::proto::PoseGraph::Constraint& constraint_proto :
+         pose_graph_proto.constraint()) {
+      if (constraint_proto.tag() !=
+          mapping::proto::PoseGraph::Constraint::INTRA_SUBMAP) {
+        continue;
+      }
+      pose_graph_->AddNodeToSubmap(
+          mapping::NodeId{constraint_proto.node_id().trajectory_id(),
+                          constraint_proto.node_id().node_index()},
+          mapping::SubmapId{constraint_proto.submap_id().trajectory_id(),
+                            constraint_proto.submap_id().submap_index()});
+    }
+  } else {
+    // When loading unfrozen trajectories, 'AddSerializedConstraints' will
+    // take care of adding information about which nodes belong to which
+    // submap.
+    pose_graph_->AddSerializedConstraints(
+        mapping::FromProto(pose_graph_proto.constraint()));
+  }
+  CHECK(reader->eof());
 }
 
 }  // namespace mapping
