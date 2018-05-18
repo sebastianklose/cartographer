@@ -271,7 +271,8 @@ void MapBuilder::LoadState(io::ProtoStreamReaderInterface* const reader,
                                  transform::ToRigid3(landmark.global_pose()));
   }
 
-  for (SerializedData& proto : map_deserializer.GetSerializedData()) {
+  SerializedData proto;
+  while (map_deserializer.GetNextSerializedData(&proto)) {
     if (proto.has_node()) {
       proto.mutable_node()->mutable_node_id()->set_trajectory_id(
           trajectory_remapping.at(proto.node().node_id().trajectory_id()));

@@ -147,15 +147,13 @@ TEST(LegacyStorageFormatTest, DeSerializationWorks) {
   EXPECT_THAT(initial_pose.to_trajectory_id(), Eq(0));
   EXPECT_THAT(initial_pose.timestamp(), Eq(0));
 
-  auto serialized_data_it = deserializer.GetSerializedData().begin();
-  const auto serialized_data_end = deserializer.GetSerializedData().end();
-
-  ASSERT_THAT(serialized_data_it, Not(Eq(serialized_data_end)));
-  EXPECT_THAT(serialized_data_it->has_node(), Eq(true));
-  ++serialized_data_it;
-  EXPECT_THAT(serialized_data_it->has_submap(), Eq(true));
-  ++serialized_data_it;
-  ASSERT_THAT(serialized_data_it, Eq(serialized_data_end));
+  mapping::proto::SerializedData serialized_data;
+  EXPECT_THAT(deserializer.GetNextSerializedData(&serialized_data), Eq(true));
+  EXPECT_THAT(serialized_data.has_node(), Eq(true));
+  EXPECT_THAT(deserializer.GetNextSerializedData(&serialized_data), Eq(true));
+  EXPECT_THAT(serialized_data.has_submap(), Eq(true));
+  EXPECT_THAT(deserializer.GetNextSerializedData(&serialized_data), Eq(false));
+  EXPECT_THAT(reader->eof(), Eq(true));
 }
 
 // This tests that we are always able to parse, what we are writing, by

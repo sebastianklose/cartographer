@@ -28,68 +28,6 @@
 namespace cartographer {
 namespace io {
 
-// Custom iterator for `SerializedData` through a ProtoStreamReaderInterface.
-class SerializedDataIterator
-    : public std::iterator<std::input_iterator_tag,
-                           mapping::proto::SerializedData> {
- public:
-  SerializedDataIterator();
-  SerializedDataIterator(const SerializedDataIterator& other);
-  explicit SerializedDataIterator(ProtoStreamReaderInterface* reader);
-
-  SerializedDataIterator& operator++() {
-    ReadNext();
-    return *this;
-  }
-
-  SerializedDataIterator operator++(int) {
-    SerializedDataIterator tmp(*this);
-    operator++();
-    return tmp;
-  }
-
-  bool operator==(const SerializedDataIterator& rhs) const {
-    return reader_ == rhs.reader_ &&
-           google::protobuf::util::MessageDifferencer::Equals(data_, rhs.data_);
-  }
-
-  bool operator!=(const SerializedDataIterator& rhs) const {
-    return reader_ != rhs.reader_ ||
-           !google::protobuf::util::MessageDifferencer::Equals(data_,
-                                                               rhs.data_);
-  }
-  const mapping::proto::SerializedData& operator*() const { return data_; }
-  mapping::proto::SerializedData& operator*() { return data_; }
-
-  const mapping::proto::SerializedData* operator->() const { return &data_; }
-  mapping::proto::SerializedData* operator->() { return &data_; }
-
- private:
-  void ReadNext();
-
-  ProtoStreamReaderInterface* reader_;
-  mapping::proto::SerializedData data_;
-};
-
-// Class for representing a range (begin, end)-pair of serialized data, to
-// enable use of range based for loops.
-class SerializedDataRange {
- public:
-  using iterator = SerializedDataIterator;
-  using const_iterator = SerializedDataIterator;
-  using value_type = mapping::proto::SerializedData;
-
-  SerializedDataRange() : begin_(), end_() {}
-  explicit SerializedDataRange(iterator begin) : begin_(begin), end_() {}
-
-  iterator begin() const { return begin_; }
-  const_iterator end() const { return end_; }
-
- private:
-  const iterator begin_;
-  const iterator end_;
-};
-
 // Class to help deserializing a previously serialized mapping state from a
 // stream.
 class MapFormatDeserializer {
@@ -108,18 +46,16 @@ class MapFormatDeserializer {
     return all_trajectory_builder_options_;
   }
 
-  // Gives an iterable range which stops when the reader hits the end of the
-  // stream. After one serializion pass, a subsequent call to
-  // `GetSerializedData()` will return an empty range, because the stream has
-  // already been completely read.
-  SerializedDataRange GetSerializedData() { return serialized_data_range_; }
+  // Reads the next `SerializedData` message of the ProtoStream into `data`.
+  // Returns `true` if the message was successfully read or `false` in case
+  // there are no-more messages or an error occurred.
+  bool GetNextSerializedData(mapping::proto::SerializedData* data);
 
  private:
   ProtoStreamReaderInterface* reader_;
 
   mapping::proto::PoseGraph pose_graph_;
   mapping::proto::AllTrajectoryBuilderOptions all_trajectory_builder_options_;
-  const SerializedDataRange serialized_data_range_;
 };
 
 }  // namespace io
