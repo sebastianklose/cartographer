@@ -25,6 +25,7 @@
 #include "cartographer/cloud/internal/handlers/write_state_handler.h"
 #include "cartographer/cloud/internal/sensor/serialization.h"
 #include "cartographer/cloud/proto/map_builder_service.pb.h"
+#include "cartographer/io/map_format_deserializer.h"
 #include "glog/logging.h"
 
 namespace cartographer {
@@ -77,6 +78,7 @@ int MapBuilderStub::AddTrajectoryForDeserialization(
     const mapping::proto::TrajectoryBuilderOptionsWithSensorIds&
         options_with_sensor_ids_proto) {
   LOG(FATAL) << "Not implemented";
+  return -1;
 }
 
 mapping::TrajectoryBuilderInterface* MapBuilderStub::GetTrajectoryBuilder(
@@ -132,21 +134,25 @@ void MapBuilderStub::LoadState(io::ProtoStreamReaderInterface* reader,
     LOG(FATAL) << "Not implemented";
   }
   async_grpc::Client<handlers::LoadStateSignature> client(client_channel_);
+
+  io::MapFormatDeserializer deserializer(reader);
   // Request with a PoseGraph proto is sent first.
   {
     proto::LoadStateRequest request;
-    CHECK(reader->ReadProto(request.mutable_pose_graph()));
+    *request.mutable_pose_graph() = deserializer.pose_graph();
     CHECK(client.Write(request));
   }
   // Request with an AllTrajectoryBuilderOptions should be second.
   {
     proto::LoadStateRequest request;
-    CHECK(reader->ReadProto(request.mutable_all_trajectory_builder_options()));
+    *request.mutable_all_trajectory_builder_options() =
+        deserializer.all_trajectory_builder_options();
     CHECK(client.Write(request));
   }
   // Multiple requests with SerializedData are sent after.
   proto::LoadStateRequest request;
-  while (reader->ReadProto(request.mutable_serialized_data())) {
+  while (
+      deserializer.GetNextSerializedData(request.mutable_serialized_data())) {
     CHECK(client.Write(request));
   }
 

@@ -27,6 +27,7 @@
 #include "cartographer/common/port.h"
 #include "cartographer/ground_truth/proto/relations.pb.h"
 #include "cartographer/ground_truth/relations_text_file.h"
+#include "cartographer/io/map_format_deserializer.h"
 #include "cartographer/io/proto_stream.h"
 #include "cartographer/mapping/proto/pose_graph.pb.h"
 #include "cartographer/transform/rigid_transform.h"
@@ -124,17 +125,21 @@ transform::Rigid3d LookupTransform(
       transform_interpolation_buffer.latest_time());
 }
 
+mapping::proto::PoseGraph ReadPoseGraph(
+    const std::string& pose_graph_filename) {
+  io::ProtoStreamReader reader(pose_graph_filename);
+  io::MapFormatDeserializer map_deserializer(&reader);
+  CHECK_EQ(map_deserializer.pose_graph().trajectory_size(), 1)
+      << "Only pose graphs containing a single trajectory are supported.";
+  return map_deserializer.pose_graph();
+}
+
 void Run(const std::string& pose_graph_filename,
          const std::string& relations_filename,
          const bool read_text_file_with_unix_timestamps) {
   LOG(INFO) << "Reading pose graph from '" << pose_graph_filename << "'...";
-  mapping::proto::PoseGraph pose_graph;
-  {
-    io::ProtoStreamReader reader(pose_graph_filename);
-    CHECK(reader.ReadProto(&pose_graph));
-    CHECK_EQ(pose_graph.trajectory_size(), 1)
-        << "Only pose graphs containing a single trajectory are supported.";
-  }
+  mapping::proto::PoseGraph pose_graph = ReadPoseGraph(pose_graph_filename);
+
   const transform::TransformInterpolationBuffer transform_interpolation_buffer(
       pose_graph.trajectory(0));
 

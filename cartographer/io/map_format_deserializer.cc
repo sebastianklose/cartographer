@@ -31,34 +31,20 @@ T ReadMessageToProtoOrDie(ProtoStreamReaderInterface* const reader) {
 
 }  // namespace
 
-SerializedDataIterator::SerializedDataIterator() : reader_(nullptr) {}
-
-SerializedDataIterator::SerializedDataIterator(
-    const SerializedDataIterator& other)
-    : reader_(other.reader_), data_(other.data_) {}
-
-SerializedDataIterator::SerializedDataIterator(
-    ProtoStreamReaderInterface* reader)
-    : reader_(reader) {
-  ReadNext();
-}
-
-void SerializedDataIterator::ReadNext() {
-  if (reader_->eof() || !reader_->ReadProto(&data_)) {
-    *this = SerializedDataIterator();
-  }
-}
-
 MapFormatDeserializer::MapFormatDeserializer(
     ProtoStreamReaderInterface* const reader)
     : reader_(reader),
       pose_graph_(ReadMessageToProtoOrDie<mapping::proto::PoseGraph>(reader)),
       all_trajectory_builder_options_(
           ReadMessageToProtoOrDie<mapping::proto::AllTrajectoryBuilderOptions>(
-              reader)),
-      serialized_data_range_(SerializedDataIterator(reader_)) {
+              reader)) {
   CHECK_EQ(pose_graph_.trajectory_size(),
            all_trajectory_builder_options_.options_with_sensor_ids_size());
+}
+
+bool MapFormatDeserializer::GetNextSerializedData(
+    mapping::proto::SerializedData* data) {
+  return reader_->ReadProto(data);
 }
 
 }  // namespace io
