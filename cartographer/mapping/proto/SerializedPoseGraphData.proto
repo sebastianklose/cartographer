@@ -19,8 +19,16 @@ import "cartographer/mapping/proto/pose_graph.proto";
 import "cartographer/mapping/proto/serialization.proto";
 import "cartographer/mapping/proto/trajectory_builder_options.proto";
 
-// Header of the serialization format. At the moment it only contains the
-// version of the format.
-message SerializationHeader {
-  string format_version = 1;
+message SerializedPoseGraphData {
+  oneof data {
+    PoseGraph pose_graph = 1;
+    AllTrajectoryBuilderOptions all_trajectory_builder_options = 2;
+    Submap submap = 3;
+    Node node = 4;
+    ImuData imu_data = 5;
+    OdometryData odometry_data = 6;
+    FixedFramePoseData fixed_frame_pose_data = 7;
+    TrajectoryData trajectory_data = 8;
+    LandmarkData landmark_data = 9;
+  }
 }
