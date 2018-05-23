@@ -15,10 +15,6 @@ syntax = "proto3";
 
 package cartographer.mapping.proto;
 
-import "cartographer/mapping/proto/pose_graph.proto";
-import "cartographer/mapping/proto/serialization.proto";
-import "cartographer/mapping/proto/trajectory_builder_options.proto";
-
 // Header of the serialization format. At the moment it only contains the
 // version of the format.
 message SerializationHeader {
