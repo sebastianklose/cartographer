@@ -19,7 +19,7 @@
 
 #include "cartographer/io/internal/in_memory_proto_stream.h"
 #include "cartographer/io/internal/testing/serialized_test_text_proto.h"
-#include "cartographer/io/map_format_deserializer.h"
+#include "cartographer/io/mapping_state_deserializer.h"
 #include "glog/logging.h"
 #include "gmock/gmock.h"
 #include "google/protobuf/text_format.h"
@@ -67,12 +67,12 @@ std::unique_ptr<InMemoryProtoStreamReader> CreateInMemoryReaderFromTextProto(
 }
 
 // This test checks, if the serialization works.
-TEST(LegacyStorageFormatTest, MapFormatDeserializerWorks) {
+TEST(LegacyStorageFormatTest, MappingStateDeserializerWorks) {
   // Load text proto into in_memory_reader.
   std::unique_ptr<InMemoryProtoStreamReader> reader =
       CreateInMemoryReaderFromTextProto(testing::kLegacyTextProto);
 
-  io::MapFormatDeserializer deserializer(reader.get());
+  io::MappingStateDeserializer deserializer(reader.get());
 
   const auto& pose_graph = deserializer.pose_graph();
   // One constraint

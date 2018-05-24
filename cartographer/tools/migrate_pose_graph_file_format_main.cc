@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "cartographer/io/map_format_deserializer.h"
+#include "cartographer/io/mapping_state_deserializer.h"
 #include "cartographer/io/proto_stream.h"
 #include "cartographer/mapping/proto/pose_graph.pb.h"
 #include "gflags/gflags.h"

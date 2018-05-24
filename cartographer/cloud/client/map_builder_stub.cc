@@ -25,7 +25,7 @@
 #include "cartographer/cloud/internal/handlers/write_state_handler.h"
 #include "cartographer/cloud/internal/sensor/serialization.h"
 #include "cartographer/cloud/proto/map_builder_service.pb.h"
-#include "cartographer/io/map_format_deserializer.h"
+#include "cartographer/io/mapping_state_deserializer.h"
 #include "glog/logging.h"
 
 namespace cartographer {
@@ -135,7 +135,7 @@ void MapBuilderStub::LoadState(io::ProtoStreamReaderInterface* reader,
   }
   async_grpc::Client<handlers::LoadStateSignature> client(client_channel_);
 
-  io::MapFormatDeserializer deserializer(reader);
+  io::MappingStateDeserializer deserializer(reader);
   // Request with a PoseGraph proto is sent first.
   {
     proto::LoadStateRequest request;

@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#ifndef CARTOGRAPHER_IO_MAP_FORMAT_DESERIALIZER_H_
-#define CARTOGRAPHER_IO_MAP_FORMAT_DESERIALIZER_H_
+#ifndef CARTOGRAPHER_IO_MAPPING_STATE_DESERIALIZER_H_
+#define CARTOGRAPHER_IO_MAPPING_STATE_DESERIALIZER_H_
 
 #include <iterator>
 
@@ -30,13 +30,13 @@ namespace io {
 
 // Class to help deserializing a previously serialized mapping state from a
 // stream.
-class MapFormatDeserializer {
+class MappingStateDeserializer {
  public:
-  explicit MapFormatDeserializer(ProtoStreamReaderInterface* const reader);
+  explicit MappingStateDeserializer(ProtoStreamReaderInterface* const reader);
 
-  MapFormatDeserializer(const MapFormatDeserializer&) = delete;
-  MapFormatDeserializer& operator=(const MapFormatDeserializer&) = delete;
-  MapFormatDeserializer(MapFormatDeserializer&&) = delete;
+  MappingStateDeserializer(const MappingStateDeserializer&) = delete;
+  MappingStateDeserializer& operator=(const MappingStateDeserializer&) = delete;
+  MappingStateDeserializer(MappingStateDeserializer&&) = delete;
 
   mapping::proto::PoseGraph& pose_graph() { return pose_graph_; }
   const mapping::proto::PoseGraph& pose_graph() const { return pose_graph_; }
@@ -61,4 +61,4 @@ class MapFormatDeserializer {
 }  // namespace io
 }  // namespace cartographer
 
-#endif  // CARTOGRAPHER_IO_MAP_FORMAT_DESERIALIZER_H_
+#endif  // CARTOGRAPHER_IO_MAPPING_STATE_DESERIALIZER_H_

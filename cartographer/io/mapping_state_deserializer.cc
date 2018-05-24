@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "cartographer/io/map_format_deserializer.h"
+#include "cartographer/io/mapping_state_deserializer.h"
 #include "glog/logging.h"
 
 namespace cartographer {
@@ -31,7 +31,7 @@ T ReadMessageToProtoOrDie(ProtoStreamReaderInterface* const reader) {
 
 }  // namespace
 
-MapFormatDeserializer::MapFormatDeserializer(
+MappingStateDeserializer::MappingStateDeserializer(
     ProtoStreamReaderInterface* const reader)
     : reader_(reader),
       pose_graph_(ReadMessageToProtoOrDie<mapping::proto::PoseGraph>(reader)),
@@ -42,7 +42,7 @@ MapFormatDeserializer::MapFormatDeserializer(
            all_trajectory_builder_options_.options_with_sensor_ids_size());
 }
 
-bool MapFormatDeserializer::GetNextSerializedData(
+bool MappingStateDeserializer::GetNextSerializedData(
     mapping::proto::LegacySerializedData* data) {
   return reader_->ReadProto(data);
 }

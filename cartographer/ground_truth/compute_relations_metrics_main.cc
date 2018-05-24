@@ -27,7 +27,7 @@
 #include "cartographer/common/port.h"
 #include "cartographer/ground_truth/proto/relations.pb.h"
 #include "cartographer/ground_truth/relations_text_file.h"
-#include "cartographer/io/map_format_deserializer.h"
+#include "cartographer/io/mapping_state_deserializer.h"
 #include "cartographer/io/proto_stream.h"
 #include "cartographer/mapping/proto/pose_graph.pb.h"
 #include "cartographer/transform/rigid_transform.h"
@@ -128,7 +128,7 @@ transform::Rigid3d LookupTransform(
 mapping::proto::PoseGraph ReadPoseGraph(
     const std::string& pose_graph_filename) {
   io::ProtoStreamReader reader(pose_graph_filename);
-  io::MapFormatDeserializer map_deserializer(&reader);
+  io::MappingStateDeserializer map_deserializer(&reader);
   CHECK_EQ(map_deserializer.pose_graph().trajectory_size(), 1)
       << "Only pose graphs containing a single trajectory are supported.";
   return map_deserializer.pose_graph();

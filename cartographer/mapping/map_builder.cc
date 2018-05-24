@@ -19,7 +19,7 @@
 #include "cartographer/common/make_unique.h"
 #include "cartographer/common/time.h"
 #include "cartographer/io/internal/mapping_state_serialization.h"
-#include "cartographer/io/map_format_deserializer.h"
+#include "cartographer/io/mapping_state_deserializer.h"
 #include "cartographer/mapping/internal/2d/local_trajectory_builder_2d.h"
 #include "cartographer/mapping/internal/2d/overlapping_submaps_trimmer_2d.h"
 #include "cartographer/mapping/internal/2d/pose_graph_2d.h"
@@ -210,13 +210,13 @@ void MapBuilder::SerializeState(io::ProtoStreamWriterInterface* const writer) {
 
 void MapBuilder::LoadState(io::ProtoStreamReaderInterface* const reader,
                            bool load_frozen_state) {
-  io::MapFormatDeserializer map_deserializer(reader);
+  io::MappingStateDeserializer deserializer(reader);
 
   // Create a copy of the pose_graph_proto, such that we can re-write the
   // trajectory ids.
-  mapping::proto::PoseGraph pose_graph_proto = map_deserializer.pose_graph();
+  mapping::proto::PoseGraph pose_graph_proto = deserializer.pose_graph();
   const auto& all_builder_options_proto =
-      map_deserializer.all_trajectory_builder_options();
+      deserializer.all_trajectory_builder_options();
 
   std::map<int, int> trajectory_remapping;
   for (auto& trajectory_proto : *pose_graph_proto.mutable_trajectory()) {
@@ -272,7 +272,7 @@ void MapBuilder::LoadState(io::ProtoStreamReaderInterface* const reader,
   }
 
   LegacySerializedData proto;
-  while (map_deserializer.GetNextSerializedData(&proto)) {
+  while (deserializer.GetNextSerializedData(&proto)) {
     if (proto.has_node()) {
       proto.mutable_node()->mutable_node_id()->set_trajectory_id(
           trajectory_remapping.at(proto.node().node_id().trajectory_id()));
