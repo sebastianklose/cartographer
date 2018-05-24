@@ -38,7 +38,7 @@ namespace mapping {
 
 namespace {
 
-using mapping::proto::SerializedData;
+using mapping::proto::LegacySerializedData;
 
 std::vector<std::string> SelectRangeSensorIds(
     const std::set<MapBuilder::SensorId>& expected_sensor_ids) {
@@ -271,7 +271,7 @@ void MapBuilder::LoadState(io::ProtoStreamReaderInterface* const reader,
                                  transform::ToRigid3(landmark.global_pose()));
   }
 
-  SerializedData proto;
+  LegacySerializedData proto;
   while (map_deserializer.GetNextSerializedData(&proto)) {
     if (proto.has_node()) {
       proto.mutable_node()->mutable_node_id()->set_trajectory_id(

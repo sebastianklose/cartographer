@@ -18,5 +18,5 @@ package cartographer.mapping.proto;
 // Header of the serialization format. At the moment it only contains the
 // version of the format.
 message SerializationHeader {
-  string format_version = 1;
+  uint32 format_version = 1;
 }

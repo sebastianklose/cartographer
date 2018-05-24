@@ -60,7 +60,7 @@ message TrajectoryData {
   transform.proto.Rigid3d fixed_frame_origin_in_map = 4;
 }
 
-message SerializedData {
+message LegacySerializedData {
   Submap submap = 1;
   Node node = 2;
   ImuData imu_data = 3;

@@ -66,6 +66,7 @@ class InMemoryProtoStreamReader
   }
 
   bool ReadProto(google::protobuf::Message* proto) override;
+  bool Read(std::string* decompressed_data) override;
   bool eof() const override { return state_chunks_.empty(); }
 
  private:

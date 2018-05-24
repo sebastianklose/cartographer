@@ -43,7 +43,7 @@ MapFormatDeserializer::MapFormatDeserializer(
 }
 
 bool MapFormatDeserializer::GetNextSerializedData(
-    mapping::proto::SerializedData* data) {
+    mapping::proto::LegacySerializedData* data) {
   return reader_->ReadProto(data);
 }
 

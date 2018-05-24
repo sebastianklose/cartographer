@@ -16,6 +16,7 @@
 
 #include "cartographer/io/internal/pose_graph_serialization.h"
 #include "cartographer/mapping/proto/serialization.pb.h"
+#include "cartographer/mapping/proto/serialized_data.pb.h"
 #include "cartographer/transform/transform.h"
 
 namespace cartographer {

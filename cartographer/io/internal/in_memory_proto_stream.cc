@@ -35,5 +35,12 @@ bool InMemoryProtoStreamReader::ReadProto(google::protobuf::Message* proto) {
   return true;
 }
 
+bool InMemoryProtoStreamReader::Read(std::string* decompressed_data) {
+  if (eof()) return false;
+  state_chunks_.front()->SerializeToString(decompressed_data);
+  state_chunks_.pop();
+  return true;
+}
+
 }  // namespace io
 }  // namespace cartographer

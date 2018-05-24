@@ -44,6 +44,10 @@ class ProtoStreamReaderInterface {
   // Deserialize compressed proto from the pb stream.
   virtual bool ReadProto(google::protobuf::Message* proto) = 0;
 
+  // Deserialize next message to string. Returns false if reached the end of the
+  // file or an error occurred.
+  virtual bool Read(std::string* decompressed_data) = 0;
+
   // 'End-of-file' marker for the pb stream.
   virtual bool eof() const = 0;
 };

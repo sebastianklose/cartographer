@@ -34,11 +34,10 @@ int main(int argc, char** argv) {
       "current file-format version.");
   google::ParseCommandLineFlags(&argc, &argv, true);
 
-  if (FLAGS_pose_graph_filename.empty() || FLAGS_relations_filename.empty()) {
-    google::ShowUsageWithFlagsRestrict(argv[0], "compute_relations_metrics");
+  if (FLAGS_original_pose_graph_filename.empty() ||
+      FLAGS_output_filename.empty()) {
+    google::ShowUsageWithFlagsRestrict(argv[0],
+                                       "migrate_pose_graph_file_format");
     return EXIT_FAILURE;
   }
-  ::cartographer::ground_truth::Run(FLAGS_pose_graph_filename,
-                                    FLAGS_relations_filename,
-                                    FLAGS_read_text_file_with_unix_timestamps);
 }
