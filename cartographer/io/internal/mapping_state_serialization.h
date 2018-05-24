@@ -13,8 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-#ifndef CARTOGRAPHER_IO_INTERNAL_POSE_GRAPH_SERIALIZATION_H_
-#define CARTOGRAPHER_IO_INTERNAL_PROTO_STREAM_H_
+#ifndef CARTOGRAPHER_IO_INTERNAL_MAPPING_STATE_SERIALIZATION_H_
+#define CARTOGRAPHER_IO_INTERNAL_MAPPING_STATE_SERIALIZATION_H_
 
 #include "cartographer/io/proto_stream_interface.h"
 #include "cartographer/mapping/pose_graph.h"
@@ -34,4 +34,4 @@ void ToPbStream(
 }  // namespace io
 }  // namespace cartographer
 
-#endif  // CARTOGRAPHER_IO_INTERNAL_POSE_GRAPH_SERIALIZATION_H_
+#endif  // CARTOGRAPHER_IO_INTERNAL_MAPPING_STATE_SERIALIZATION_H_

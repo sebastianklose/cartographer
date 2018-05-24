@@ -18,7 +18,7 @@
 
 #include "cartographer/common/make_unique.h"
 #include "cartographer/common/time.h"
-#include "cartographer/io/internal/pose_graph_serialization.h"
+#include "cartographer/io/internal/mapping_state_serialization.h"
 #include "cartographer/io/map_format_deserializer.h"
 #include "cartographer/mapping/internal/2d/local_trajectory_builder_2d.h"
 #include "cartographer/mapping/internal/2d/overlapping_submaps_trimmer_2d.h"

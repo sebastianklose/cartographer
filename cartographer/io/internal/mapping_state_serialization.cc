@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include "cartographer/io/internal/pose_graph_serialization.h"
+#include "cartographer/io/internal/mapping_state_serialization.h"
 #include "cartographer/mapping/proto/serialization.pb.h"
 #include "cartographer/mapping/proto/serialized_data.pb.h"
 #include "cartographer/transform/transform.h"
