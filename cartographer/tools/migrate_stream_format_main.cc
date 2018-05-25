@@ -17,27 +17,34 @@
 #include "cartographer/io/mapping_state_deserializer.h"
 #include "cartographer/io/proto_stream.h"
 #include "cartographer/mapping/proto/pose_graph.pb.h"
+#include "cartographer/mapping/stream_format_migration.h"
 #include "gflags/gflags.h"
 #include "glog/logging.h"
 
-DEFINE_string(original_pose_graph_filename, "",
-              "PoseGraph proto stream file that should be migrated.");
-DEFINE_string(output_filename, "",
-              "Filename for the migrated PoseGraph output file.");
+DEFINE_string(original_pbstream_file, "",
+              "Path to the pbstream file that shall be migrated.");
+DEFINE_string(output_pbstream_file, "",
+              "Output filename for the migrated pbstream.");
 
 int main(int argc, char** argv) {
   google::InitGoogleLogging(argv[0]);
   FLAGS_logtostderr = true;
   google::SetUsageMessage(
       "\n\n"
-      "This program can be used to migrate old PoseGraph file formats to the\n"
-      "current file-format version.");
+      "Tool for migrating files that used the old stream format for "
+      "serializing the mapping state of Cartographer, to the new stream format "
+      "(Version 1).");
   google::ParseCommandLineFlags(&argc, &argv, true);
 
-  if (FLAGS_original_pose_graph_filename.empty() ||
-      FLAGS_output_filename.empty()) {
+  if (FLAGS_original_pbstream_file.empty() ||
+      FLAGS_output_pbstream_file.empty()) {
     google::ShowUsageWithFlagsRestrict(argv[0],
                                        "migrate_pose_graph_file_format");
+
+    cartographer::io::ProtoStreamReader input(FLAGS_original_pbstream_file);
+    cartographer::io::ProtoStreamWriter output(FLAGS_output_pbstream_file);
+    cartographer::mapping::MigrateStreamFormatToVersion1(&input, &output);
+
     return EXIT_FAILURE;
   }
 }

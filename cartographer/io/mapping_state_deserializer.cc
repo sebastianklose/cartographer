@@ -45,7 +45,6 @@ MappingStateDeserializer::MappingStateDeserializer(
          "`SerializationHeader`, but got field tag "
       << pose_graph_.data_case();
 
-  // Next message should be
   CHECK(GetNextSerializedData(&all_trajectory_builder_options_))
       << "Serialized stream misses `AllTrajectoryBuilderOptions`.";
   CHECK(all_trajectory_builder_options_.has_all_trajectory_builder_options())
