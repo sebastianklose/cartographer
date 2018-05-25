@@ -39,12 +39,17 @@ class MappingStateDeserializer {
   MappingStateDeserializer(MappingStateDeserializer&&) = delete;
 
   mapping::proto::SerializationHeader& header() { return header_; }
-  mapping::proto::PoseGraph& pose_graph() { return pose_graph_; }
-  const mapping::proto::PoseGraph& pose_graph() const { return pose_graph_; }
+
+  mapping::proto::PoseGraph& pose_graph() {
+    return *pose_graph_.mutable_pose_graph();
+  }
+  const mapping::proto::PoseGraph& pose_graph() const {
+    return pose_graph_.pose_graph();
+  }
 
   const mapping::proto::AllTrajectoryBuilderOptions&
   all_trajectory_builder_options() {
-    return all_trajectory_builder_options_;
+    return all_trajectory_builder_options_.all_trajectory_builder_options();
   }
 
   // Reads the next `SerializedData` message of the ProtoStream into `data`.
@@ -56,8 +61,8 @@ class MappingStateDeserializer {
   ProtoStreamReaderInterface* reader_;
 
   mapping::proto::SerializationHeader header_;
-  mapping::proto::PoseGraph pose_graph_;
-  mapping::proto::AllTrajectoryBuilderOptions all_trajectory_builder_options_;
+  mapping::proto::SerializedData pose_graph_;
+  mapping::proto::SerializedData all_trajectory_builder_options_;
 };
 
 }  // namespace io

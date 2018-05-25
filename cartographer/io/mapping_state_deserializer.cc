@@ -22,14 +22,6 @@ namespace cartographer {
 namespace io {
 
 namespace {
-template <typename T>
-
-T ReadMessageOrDie(ProtoStreamReaderInterface* const reader) {
-  T msg_type;
-  CHECK(reader->ReadProto(&msg_type)) << "Failed to read message from stream.";
-  return msg_type;
-}
-
 mapping::proto::SerializationHeader ReadHeaderOrDie(
     ProtoStreamReaderInterface* const reader) {
   mapping::proto::SerializationHeader header;
@@ -43,28 +35,28 @@ MappingStateDeserializer::MappingStateDeserializer(
     ProtoStreamReaderInterface* const reader)
     : reader_(reader), header_(ReadHeaderOrDie(reader)) {
   CHECK(header_.format_version() == kMappingStateSerializationFormatVersion)
-      << "Only supporting serialization format "
-      << kMappingStateSerializationFormatVersion << " for serialized streams";
-  mapping::proto::SerializedData serialized_data;
-  CHECK(GetNextSerializedData(&serialized_data))
+      << "Unsupported serialization format \"" << header_.format_version()
+      << "\"";
+
+  CHECK(GetNextSerializedData(&pose_graph_))
       << "Serialized stream misses PoseGraph.";
-  CHECK(serialized_data.has_pose_graph())
+  CHECK(pose_graph_.has_pose_graph())
       << "Serialized stream order corrupt. Expecting `PoseGraph` after "
-         "`SerializationHeader`, but got "
-      << serialized_data.GetTypeName();
-  pose_graph_ = serialized_data.pose_graph();
+         "`SerializationHeader`, but got field tag "
+      << pose_graph_.data_case();
 
   // Next message should be
-  CHECK(GetNextSerializedData(&serialized_data))
+  CHECK(GetNextSerializedData(&all_trajectory_builder_options_))
       << "Serialized stream misses `AllTrajectoryBuilderOptions`.";
-  CHECK(serialized_data.has_pose_graph())
-      << "Serialized stream order corrupt. Expecting PoseGraph after "
-         "SerializationHeader, got "
-      << serialized_data.GetTypeName();
-  pose_graph_ = serialized_data.pose_graph();
+  CHECK(all_trajectory_builder_options_.has_all_trajectory_builder_options())
+      << "Serialized stream order corrupt. Expecting "
+         "`AllTrajectoryBuilderOptions` after "
+         "PoseGraph, got field tag "
+      << all_trajectory_builder_options_.data_case();
 
-  CHECK_EQ(pose_graph_.trajectory_size(),
-           all_trajectory_builder_options_.options_with_sensor_ids_size());
+  CHECK_EQ(pose_graph_.pose_graph().trajectory_size(),
+           all_trajectory_builder_options_.all_trajectory_builder_options()
+               .options_with_sensor_ids_size());
 }
 
 bool MappingStateDeserializer::GetNextSerializedData(

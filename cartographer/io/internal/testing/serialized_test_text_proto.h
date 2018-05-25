@@ -8,9 +8,13 @@ namespace io {
 namespace testing {
 
 // Single proto messages are separated by `#` for simple parsing.
-// The first proto is a `PoseGraph`, the second `AllTrajectoryBuilderOptions`,
-// then followed by a sequence of `SerializedData`.
-static const std::string kLegacyTextProto = R"(
+// The first proto is a `SerializationHeader`, the second a `PoseGraph` and the
+// third `AllTrajectoryBuilderOptions`
+//  followed by a sequence of `SerializedData`.
+static const std::string kSerializedMappingStateStream = R"(
+  format_version: 1
+#
+pose_graph {
   constraint {
     submap_id {
       trajectory_id: 0
@@ -75,7 +79,9 @@ static const std::string kLegacyTextProto = R"(
   }
   landmark_poses {
   }
+}
 #
+all_trajectory_builder_options {
   options_with_sensor_ids {
     sensor_id {
       type: RANGE
@@ -112,6 +118,14 @@ static const std::string kLegacyTextProto = R"(
       }
     }
   }
+}
+#
+  submap {
+    submap_id {
+    }
+    submap_2d {
+    }
+  }
 #
   node {
     node_id {
@@ -133,13 +147,6 @@ static const std::string kLegacyTextProto = R"(
           w: 1.0
         }
       }
-    }
-  }
-#
-  submap {
-    submap_id {
-    }
-    submap_2d {
     }
   }
 )";

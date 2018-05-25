@@ -33,6 +33,7 @@ using common::make_unique;
 using google::protobuf::Message;
 using mapping::proto::AllTrajectoryBuilderOptions;
 using mapping::proto::PoseGraph;
+using mapping::proto::SerializationHeader;
 using mapping::proto::SerializedData;
 using ::testing::Eq;
 using ::testing::Not;
@@ -45,14 +46,9 @@ std::unique_ptr<InMemoryProtoStreamReader> CreateInMemoryReaderFromTextProto(
   std::queue<std::unique_ptr<Message>> proto_queue;
   std::istringstream in_stream(file_string);
 
-  // Parse the PoseGraph proto.
+  // Parse the header.
   std::string proto_string;
-  proto_queue.push(make_unique<PoseGraph>());
-  std::getline(in_stream, proto_string, kProtoDelim);
-  CHECK(google::protobuf::TextFormat::ParseFromString(
-      proto_string, proto_queue.back().get()));
-
-  proto_queue.push(make_unique<AllTrajectoryBuilderOptions>());
+  proto_queue.push(make_unique<mapping::proto::SerializationHeader>());
   std::getline(in_stream, proto_string, kProtoDelim);
   CHECK(google::protobuf::TextFormat::ParseFromString(
       proto_string, proto_queue.back().get()));
@@ -66,11 +62,17 @@ std::unique_ptr<InMemoryProtoStreamReader> CreateInMemoryReaderFromTextProto(
   return make_unique<InMemoryProtoStreamReader>(std::move(proto_queue));
 }
 
+std::unique_ptr<Message> CreateSerializationHeader(uint32_t version) {
+  auto header = common::make_unique<SerializationHeader>();
+  header->set_format_version(version);
+  return header;
+}
+
 // This test checks, if the serialization works.
-TEST(LegacyStorageFormatTest, MappingStateDeserializerWorks) {
+TEST(MappingStateDeserializerTest, WorksOnHardCodedTextStream) {
   // Load text proto into in_memory_reader.
   std::unique_ptr<InMemoryProtoStreamReader> reader =
-      CreateInMemoryReaderFromTextProto(testing::kLegacyTextProto);
+      CreateInMemoryReaderFromTextProto(testing::kSerializedMappingStateStream);
 
   io::MappingStateDeserializer deserializer(reader.get());
 
@@ -149,11 +151,21 @@ TEST(LegacyStorageFormatTest, MappingStateDeserializerWorks) {
 
   SerializedData serialized_data;
   EXPECT_THAT(deserializer.GetNextSerializedData(&serialized_data), Eq(true));
-  EXPECT_THAT(serialized_data.has_node(), Eq(true));
-  EXPECT_THAT(deserializer.GetNextSerializedData(&serialized_data), Eq(true));
   EXPECT_THAT(serialized_data.has_submap(), Eq(true));
+  EXPECT_THAT(deserializer.GetNextSerializedData(&serialized_data), Eq(true));
+  EXPECT_THAT(serialized_data.has_node(), Eq(true));
   EXPECT_THAT(deserializer.GetNextSerializedData(&serialized_data), Eq(false));
   EXPECT_THAT(reader->eof(), Eq(true));
+}
+
+// Currently we only support one version of the format: format_version == 1.
+TEST(MappingStateDeserializerDeathTests, FailsIfVersionNotSupported) {
+  std::queue<std::unique_ptr<Message>> proto_queue;
+  proto_queue.push(CreateSerializationHeader(/*version = */ 0));
+  InMemoryProtoStreamReader reader(std::move(proto_queue));
+
+  EXPECT_DEATH(common::make_unique<MappingStateDeserializer>(&reader),
+               "Unsupported serialization format");
 }
 
 }  // namespace
