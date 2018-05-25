@@ -11,12 +11,19 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+
 syntax = "proto3";
 
 package cartographer.mapping.proto;
 
-// Header of the serialization format. At the moment it only contains the
-// version of the format.
-message SerializationHeader {
-  uint32 format_version = 1;
+import "cartographer/mapping/proto/serialization.proto"
+
+message LegacySerializedData {
+  Submap submap = 1;
+  Node node = 2;
+  ImuData imu_data = 3;
+  OdometryData odometry_data = 4;
+  FixedFramePoseData fixed_frame_pose_data = 5;
+  TrajectoryData trajectory_data = 6;
+  LandmarkData landmark_data = 7;
 }

@@ -25,10 +25,10 @@ message SerializedData {
     AllTrajectoryBuilderOptions all_trajectory_builder_options = 2;
     Submap submap = 3;
     Node node = 4;
-    ImuData imu_data = 5;
-    OdometryData odometry_data = 6;
-    FixedFramePoseData fixed_frame_pose_data = 7;
-    TrajectoryData trajectory_data = 8;
+    TrajectoryData trajectory_data = 5;
+    ImuData imu_data = 6;
+    OdometryData odometry_data = 7;
+    FixedFramePoseData fixed_frame_pose_data = 8;
     LandmarkData landmark_data = 9;
   }
 }
