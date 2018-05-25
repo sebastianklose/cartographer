@@ -23,7 +23,6 @@
 #include "cartographer/mapping/proto/pose_graph.pb.h"
 #include "cartographer/mapping/proto/serialization.pb.h"
 #include "cartographer/mapping/proto/trajectory_builder_options.pb.h"
-#include "google/protobuf/util/message_differencer.h"
 
 namespace cartographer {
 namespace io {
