@@ -113,11 +113,8 @@ void MapBuilderStub::SerializeState(io::ProtoStreamWriterInterface* writer) {
   proto::WriteStateResponse response;
   while (client.StreamRead(&response)) {
     switch (response.state_chunk_case()) {
-      case proto::WriteStateResponse::kPoseGraph:
-        writer->WriteProto(response.pose_graph());
-        break;
-      case proto::WriteStateResponse::kAllTrajectoryBuilderOptions:
-        writer->WriteProto(response.all_trajectory_builder_options());
+      case proto::WriteStateResponse::kHeader:
+        writer->WriteProto(response.header());
         break;
       case proto::WriteStateResponse::kSerializedData:
         writer->WriteProto(response.serialized_data());

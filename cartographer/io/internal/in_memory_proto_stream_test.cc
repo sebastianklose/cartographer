@@ -26,8 +26,8 @@ namespace {
 
 using common::make_unique;
 using google::protobuf::Message;
-using mapping::proto::LegacySerializedData;
 using mapping::proto::PoseGraph;
+using mapping::proto::SerializedData;
 
 class InMemoryProtoStreamTest : public ::testing::Test {
  protected:
@@ -37,13 +37,17 @@ class InMemoryProtoStreamTest : public ::testing::Test {
   }
 
   PoseGraph pose_graph_;
-  LegacySerializedData serialized_data_;
+  SerializedData serialized_data_;
 };
 
 TEST_F(InMemoryProtoStreamTest, ReadStreamInitializedFromQueue) {
   std::queue<std::unique_ptr<Message>> proto_queue;
+  // TODO(klose): Change this to use a posegraph wrapped in SerializedData?"
+  //  for testing the InMemoryProtoStream, this is actually independent from a
+  //  serialization format, so we should probably put this test into the mapping
+  //  state deserializer.
   proto_queue.push(make_unique<PoseGraph>(pose_graph_));
-  proto_queue.push(make_unique<LegacySerializedData>(serialized_data_));
+  proto_queue.push(make_unique<SerializedData>(serialized_data_));
 
   InMemoryProtoStreamReader reader(std::move(proto_queue));
 
@@ -52,7 +56,7 @@ TEST_F(InMemoryProtoStreamTest, ReadStreamInitializedFromQueue) {
   EXPECT_TRUE(reader.ReadProto(&actual_pose_graph));
   EXPECT_EQ(1, actual_pose_graph.trajectory(0).trajectory_id());
 
-  LegacySerializedData actual_serialized_data;
+  SerializedData actual_serialized_data;
   EXPECT_FALSE(reader.eof());
   EXPECT_TRUE(reader.ReadProto(&actual_serialized_data));
   EXPECT_EQ(2, actual_serialized_data.odometry_data().trajectory_id());
@@ -70,7 +74,7 @@ TEST_F(InMemoryProtoStreamTest, ReadStreamInitializedIncrementally) {
   EXPECT_TRUE(reader.ReadProto(&actual_pose_graph));
   EXPECT_EQ(1, actual_pose_graph.trajectory(0).trajectory_id());
 
-  LegacySerializedData actual_serialized_data;
+  SerializedData actual_serialized_data;
   EXPECT_FALSE(reader.eof());
   EXPECT_TRUE(reader.ReadProto(&actual_serialized_data));
   EXPECT_EQ(2, actual_serialized_data.odometry_data().trajectory_id());

@@ -38,6 +38,7 @@ class MappingStateDeserializer {
   MappingStateDeserializer& operator=(const MappingStateDeserializer&) = delete;
   MappingStateDeserializer(MappingStateDeserializer&&) = delete;
 
+  mapping::proto::SerializationHeader& header() { return header_; }
   mapping::proto::PoseGraph& pose_graph() { return pose_graph_; }
   const mapping::proto::PoseGraph& pose_graph() const { return pose_graph_; }
 
@@ -49,11 +50,12 @@ class MappingStateDeserializer {
   // Reads the next `SerializedData` message of the ProtoStream into `data`.
   // Returns `true` if the message was successfully read or `false` in case
   // there are no-more messages or an error occurred.
-  bool GetNextSerializedData(mapping::proto::LegacySerializedData* data);
+  bool GetNextSerializedData(mapping::proto::SerializedData* data);
 
  private:
   ProtoStreamReaderInterface* reader_;
 
+  mapping::proto::SerializationHeader header_;
   mapping::proto::PoseGraph pose_graph_;
   mapping::proto::AllTrajectoryBuilderOptions all_trajectory_builder_options_;
 };

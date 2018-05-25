@@ -38,7 +38,7 @@ namespace mapping {
 
 namespace {
 
-using mapping::proto::LegacySerializedData;
+using mapping::proto::SerializedData;
 
 std::vector<std::string> SelectRangeSensorIds(
     const std::set<MapBuilder::SensorId>& expected_sensor_ids) {
@@ -271,52 +271,76 @@ void MapBuilder::LoadState(io::ProtoStreamReaderInterface* const reader,
                                  transform::ToRigid3(landmark.global_pose()));
   }
 
-  LegacySerializedData proto;
+  SerializedData proto;
   while (deserializer.GetNextSerializedData(&proto)) {
-    if (proto.has_node()) {
-      proto.mutable_node()->mutable_node_id()->set_trajectory_id(
-          trajectory_remapping.at(proto.node().node_id().trajectory_id()));
-      const transform::Rigid3d node_pose =
-          node_poses.at(mapping::NodeId{proto.node().node_id().trajectory_id(),
-                                        proto.node().node_id().node_index()});
-      pose_graph_->AddNodeFromProto(node_pose, proto.node());
-    }
-    if (proto.has_submap()) {
-      proto.mutable_submap()->mutable_submap_id()->set_trajectory_id(
-          trajectory_remapping.at(proto.submap().submap_id().trajectory_id()));
-      const transform::Rigid3d submap_pose = submap_poses.at(
-          mapping::SubmapId{proto.submap().submap_id().trajectory_id(),
-                            proto.submap().submap_id().submap_index()});
-      pose_graph_->AddSubmapFromProto(submap_pose, proto.submap());
-    }
-    if (proto.has_trajectory_data()) {
-      proto.mutable_trajectory_data()->set_trajectory_id(
-          trajectory_remapping.at(proto.trajectory_data().trajectory_id()));
-      pose_graph_->SetTrajectoryDataFromProto(proto.trajectory_data());
-    }
-    if (!load_frozen_state) {
-      if (proto.has_imu_data()) {
+    switch (proto.data_case()) {
+      case SerializedData::kPoseGraph:
+        LOG(ERROR) << "Found multiple serialized `PoseGraph`. Serialized "
+                      "stream likely corrupt!.";
+        break;
+      case SerializedData::kAllTrajectoryBuilderOptions:
+        LOG(ERROR) << "Found multiple serialized "
+                      "`AllTrajectoryBuilderOptions`. Serialized stream likely "
+                      "corrupt!.";
+        break;
+      case SerializedData::kSubmap: {
+        proto.mutable_submap()->mutable_submap_id()->set_trajectory_id(
+            trajectory_remapping.at(
+                proto.submap().submap_id().trajectory_id()));
+        const transform::Rigid3d& submap_pose = submap_poses.at(
+            mapping::SubmapId{proto.submap().submap_id().trajectory_id(),
+                              proto.submap().submap_id().submap_index()});
+        pose_graph_->AddSubmapFromProto(submap_pose, proto.submap());
+        break;
+      }
+      case SerializedData::kNode: {
+        proto.mutable_node()->mutable_node_id()->set_trajectory_id(
+            trajectory_remapping.at(proto.node().node_id().trajectory_id()));
+        const transform::Rigid3d& node_pose = node_poses.at(
+            mapping::NodeId{proto.node().node_id().trajectory_id(),
+                            proto.node().node_id().node_index()});
+        pose_graph_->AddNodeFromProto(node_pose, proto.node());
+        break;
+      }
+      case SerializedData::kTrajectoryData: {
+        proto.mutable_trajectory_data()->set_trajectory_id(
+            trajectory_remapping.at(proto.trajectory_data().trajectory_id()));
+        pose_graph_->SetTrajectoryDataFromProto(proto.trajectory_data());
+        break;
+      }
+      case SerializedData::kImuData: {
+        if (load_frozen_state) break;
         pose_graph_->AddImuData(
             trajectory_remapping.at(proto.imu_data().trajectory_id()),
             sensor::FromProto(proto.imu_data().imu_data()));
+        break;
       }
-      if (proto.has_odometry_data()) {
+      case SerializedData::kOdometryData: {
+        if (load_frozen_state) break;
         pose_graph_->AddOdometryData(
             trajectory_remapping.at(proto.odometry_data().trajectory_id()),
             sensor::FromProto(proto.odometry_data().odometry_data()));
+        break;
       }
-      if (proto.has_fixed_frame_pose_data()) {
+      case SerializedData::kFixedFramePoseData: {
+        if (load_frozen_state) break;
         pose_graph_->AddFixedFramePoseData(
             trajectory_remapping.at(
                 proto.fixed_frame_pose_data().trajectory_id()),
             sensor::FromProto(
                 proto.fixed_frame_pose_data().fixed_frame_pose_data()));
+        break;
       }
-      if (proto.has_landmark_data()) {
+      case SerializedData::kLandmarkData: {
+        if (load_frozen_state) break;
         pose_graph_->AddLandmarkData(
             trajectory_remapping.at(proto.landmark_data().trajectory_id()),
             sensor::FromProto(proto.landmark_data().landmark_data()));
+        break;
       }
+      default:
+        LOG(WARNING) << "Skipping unknown message type in stream: "
+                     << proto.GetTypeName();
     }
   }
 

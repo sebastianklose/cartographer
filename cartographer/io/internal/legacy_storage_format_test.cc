@@ -32,8 +32,8 @@ namespace {
 using common::make_unique;
 using google::protobuf::Message;
 using mapping::proto::AllTrajectoryBuilderOptions;
-using mapping::proto::LegacySerializedData;
 using mapping::proto::PoseGraph;
+using mapping::proto::SerializedData;
 using ::testing::Eq;
 using ::testing::Not;
 
@@ -57,9 +57,9 @@ std::unique_ptr<InMemoryProtoStreamReader> CreateInMemoryReaderFromTextProto(
   CHECK(google::protobuf::TextFormat::ParseFromString(
       proto_string, proto_queue.back().get()));
 
-  // Parse all the remaining LegacySerializedData protos
+  // Parse all the remaining SerializedData protos
   while (std::getline(in_stream, proto_string, kProtoDelim)) {
-    proto_queue.push(make_unique<mapping::proto::LegacySerializedData>());
+    proto_queue.push(make_unique<SerializedData>());
     CHECK(google::protobuf::TextFormat::ParseFromString(
         proto_string, proto_queue.back().get()));
   }
@@ -147,22 +147,13 @@ TEST(LegacyStorageFormatTest, MappingStateDeserializerWorks) {
   EXPECT_THAT(initial_pose.to_trajectory_id(), Eq(0));
   EXPECT_THAT(initial_pose.timestamp(), Eq(0));
 
-  mapping::proto::LegacySerializedData serialized_data;
+  SerializedData serialized_data;
   EXPECT_THAT(deserializer.GetNextSerializedData(&serialized_data), Eq(true));
   EXPECT_THAT(serialized_data.has_node(), Eq(true));
   EXPECT_THAT(deserializer.GetNextSerializedData(&serialized_data), Eq(true));
   EXPECT_THAT(serialized_data.has_submap(), Eq(true));
   EXPECT_THAT(deserializer.GetNextSerializedData(&serialized_data), Eq(false));
   EXPECT_THAT(reader->eof(), Eq(true));
-}
-
-// This tests that we are always able to parse, what we are writing, by
-// performing a round trip test.
-TEST(LegacyStorageFormatTest, ToLegacyFormatWorks) {
-  // Load text proto
-  // serialize with io::ToLegacyFormat(...)
-  // deserialize with io::FromLegacyFormat(...)
-  // verify invariants.
 }
 
 }  // namespace
