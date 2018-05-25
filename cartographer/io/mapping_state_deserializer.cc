@@ -15,6 +15,7 @@
  */
 
 #include "cartographer/io/mapping_state_deserializer.h"
+#include "cartographer/io/internal/mapping_state_serialization.h"
 #include "glog/logging.h"
 
 namespace cartographer {
@@ -41,9 +42,26 @@ mapping::proto::SerializationHeader ReadHeaderOrDie(
 MappingStateDeserializer::MappingStateDeserializer(
     ProtoStreamReaderInterface* const reader)
     : reader_(reader), header_(ReadHeaderOrDie(reader)) {
+  CHECK(header_.format_version() == kMappingStateSerializationFormatVersion)
+      << "Only supporting serialization format "
+      << kMappingStateSerializationFormatVersion << " for serialized streams";
   mapping::proto::SerializedData serialized_data;
   CHECK(GetNextSerializedData(&serialized_data))
       << "Serialized stream misses PoseGraph.";
+  CHECK(serialized_data.has_pose_graph())
+      << "Serialized stream order corrupt. Expecting `PoseGraph` after "
+         "`SerializationHeader`, but got "
+      << serialized_data.GetTypeName();
+  pose_graph_ = serialized_data.pose_graph();
+
+  // Next message should be
+  CHECK(GetNextSerializedData(&serialized_data))
+      << "Serialized stream misses `AllTrajectoryBuilderOptions`.";
+  CHECK(serialized_data.has_pose_graph())
+      << "Serialized stream order corrupt. Expecting PoseGraph after "
+         "SerializationHeader, got "
+      << serialized_data.GetTypeName();
+  pose_graph_ = serialized_data.pose_graph();
 
   CHECK_EQ(pose_graph_.trajectory_size(),
            all_trajectory_builder_options_.options_with_sensor_ids_size());

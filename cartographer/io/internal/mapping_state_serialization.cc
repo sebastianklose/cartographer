@@ -23,9 +23,6 @@ namespace io {
 
 namespace {
 
-// The current serialization format version.
-constexpr int kSerializationFormatVersion = 1;
-
 mapping::proto::AllTrajectoryBuilderOptions
 CreateAllTrajectoryBuilderOptionsProto(
     const std::vector<mapping::proto::TrajectoryBuilderOptionsWithSensorIds>&
@@ -41,7 +38,7 @@ CreateAllTrajectoryBuilderOptionsProto(
 
 mapping::proto::SerializationHeader CreateHeader() {
   mapping::proto::SerializationHeader header;
-  header.set_version(kSerializationFormatVersion);
+  header.set_format_version(kMappingStateSerializationFormatVersion);
   return header;
 }
 

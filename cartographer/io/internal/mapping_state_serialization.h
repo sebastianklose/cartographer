@@ -24,6 +24,9 @@
 namespace cartographer {
 namespace io {
 
+// The current serialization format version.
+static constexpr int kMappingStateSerializationFormatVersion = 1;
+
 // Serialize mapping state to a pbstream.
 void ToPbStream(
     const mapping::PoseGraph& pose_graph,
