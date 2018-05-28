@@ -42,6 +42,10 @@ class InMemoryProtoStreamTest : public ::testing::Test {
 
 TEST_F(InMemoryProtoStreamTest, ReadStreamInitializedFromQueue) {
   std::queue<std::unique_ptr<Message>> proto_queue;
+  // TODO(klose): Change this to use a posegraph wrapped in SerializedData?"
+  //  for testing the InMemoryProtoStream, this is actually independent from a
+  //  serialization format, so we should probably put this test into the mapping
+  //  state deserializer.
   proto_queue.push(make_unique<PoseGraph>(pose_graph_));
   proto_queue.push(make_unique<SerializedData>(serialized_data_));
 
