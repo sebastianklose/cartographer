@@ -59,11 +59,11 @@ class ProtoStreamReader : public ProtoStreamReaderInterface {
   ProtoStreamReader& operator=(const ProtoStreamReader&) = delete;
 
   bool ReadProto(google::protobuf::Message* proto) override;
-  bool Read(std::string* decompressed_data) override;
-
   bool eof() const override;
 
  private:
+  bool Read(std::string* decompressed_data);
+
   std::ifstream in_;
 };
 
