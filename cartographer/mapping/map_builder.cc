@@ -70,17 +70,6 @@ proto::MapBuilderOptions CreateMapBuilderOptions(
   return options;
 }
 
-std::vector<std::string> SelectRangeSensorIds(
-    const std::set<MapBuilder::SensorId>& expected_sensor_ids) {
-  std::vector<std::string> range_sensor_ids;
-  for (const MapBuilder::SensorId& sensor_id : expected_sensor_ids) {
-    if (sensor_id.type == MapBuilder::SensorId::SensorType::RANGE) {
-      range_sensor_ids.push_back(sensor_id.id);
-    }
-  }
-  return range_sensor_ids;
-}
-
 MapBuilder::MapBuilder(const proto::MapBuilderOptions& options)
     : options_(options), thread_pool_(options.num_background_threads()) {
   CHECK(options.use_trajectory_builder_2d() ^
@@ -281,7 +270,6 @@ void MapBuilder::LoadState(io::ProtoStreamReaderInterface* const reader,
                                  transform::ToRigid3(landmark.global_pose()));
   }
 
-<<<<<<< HEAD
   SerializedData proto;
   while (deserializer.GetNextSerializedData(&proto)) {
     switch (proto.data_case()) {
@@ -321,36 +309,6 @@ void MapBuilder::LoadState(io::ProtoStreamReaderInterface* const reader,
       }
       case SerializedData::kImuData: {
         if (load_frozen_state) break;
-=======
-  for (;;) {
-    proto::LegacySerializedData proto;
-    if (!reader->ReadProto(&proto)) {
-      break;
-    }
-    if (proto.has_node()) {
-      proto.mutable_node()->mutable_node_id()->set_trajectory_id(
-          trajectory_remapping.at(proto.node().node_id().trajectory_id()));
-      const transform::Rigid3d node_pose =
-          node_poses.at(NodeId{proto.node().node_id().trajectory_id(),
-                               proto.node().node_id().node_index()});
-      pose_graph_->AddNodeFromProto(node_pose, proto.node());
-    }
-    if (proto.has_submap()) {
-      proto.mutable_submap()->mutable_submap_id()->set_trajectory_id(
-          trajectory_remapping.at(proto.submap().submap_id().trajectory_id()));
-      const transform::Rigid3d submap_pose =
-          submap_poses.at(SubmapId{proto.submap().submap_id().trajectory_id(),
-                                   proto.submap().submap_id().submap_index()});
-      pose_graph_->AddSubmapFromProto(submap_pose, proto.submap());
-    }
-    if (proto.has_trajectory_data()) {
-      proto.mutable_trajectory_data()->set_trajectory_id(
-          trajectory_remapping.at(proto.trajectory_data().trajectory_id()));
-      pose_graph_->SetTrajectoryDataFromProto(proto.trajectory_data());
-    }
-    if (!load_frozen_state) {
-      if (proto.has_imu_data()) {
->>>>>>> master
         pose_graph_->AddImuData(
             trajectory_remapping.at(proto.imu_data().trajectory_id()),
             sensor::FromProto(proto.imu_data().imu_data()));
