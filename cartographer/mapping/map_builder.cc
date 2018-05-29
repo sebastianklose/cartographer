@@ -27,6 +27,7 @@
 #include "cartographer/mapping/internal/3d/pose_graph_3d.h"
 #include "cartographer/mapping/internal/collated_trajectory_builder.h"
 #include "cartographer/mapping/internal/global_trajectory_builder.h"
+#include "cartographer/mapping/proto/internal/legacy_serialized_data.pb.h"
 #include "cartographer/sensor/internal/collator.h"
 #include "cartographer/sensor/internal/trajectory_collator.h"
 #include "cartographer/sensor/internal/voxel_filter.h"
@@ -214,7 +215,7 @@ std::string MapBuilder::SubmapToProto(
 }
 
 void MapBuilder::SerializeState(io::ProtoStreamWriterInterface* const writer) {
-  io::ToPbStream(*pose_graph_, all_trajectory_builder_options_, writer);
+  io::WritePbStream(*pose_graph_, all_trajectory_builder_options_, writer);
 }
 
 void MapBuilder::LoadState(io::ProtoStreamReaderInterface* const reader,
@@ -280,6 +281,7 @@ void MapBuilder::LoadState(io::ProtoStreamReaderInterface* const reader,
                                  transform::ToRigid3(landmark.global_pose()));
   }
 
+<<<<<<< HEAD
   SerializedData proto;
   while (deserializer.GetNextSerializedData(&proto)) {
     switch (proto.data_case()) {
@@ -319,6 +321,36 @@ void MapBuilder::LoadState(io::ProtoStreamReaderInterface* const reader,
       }
       case SerializedData::kImuData: {
         if (load_frozen_state) break;
+=======
+  for (;;) {
+    proto::LegacySerializedData proto;
+    if (!reader->ReadProto(&proto)) {
+      break;
+    }
+    if (proto.has_node()) {
+      proto.mutable_node()->mutable_node_id()->set_trajectory_id(
+          trajectory_remapping.at(proto.node().node_id().trajectory_id()));
+      const transform::Rigid3d node_pose =
+          node_poses.at(NodeId{proto.node().node_id().trajectory_id(),
+                               proto.node().node_id().node_index()});
+      pose_graph_->AddNodeFromProto(node_pose, proto.node());
+    }
+    if (proto.has_submap()) {
+      proto.mutable_submap()->mutable_submap_id()->set_trajectory_id(
+          trajectory_remapping.at(proto.submap().submap_id().trajectory_id()));
+      const transform::Rigid3d submap_pose =
+          submap_poses.at(SubmapId{proto.submap().submap_id().trajectory_id(),
+                                   proto.submap().submap_id().submap_index()});
+      pose_graph_->AddSubmapFromProto(submap_pose, proto.submap());
+    }
+    if (proto.has_trajectory_data()) {
+      proto.mutable_trajectory_data()->set_trajectory_id(
+          trajectory_remapping.at(proto.trajectory_data().trajectory_id()));
+      pose_graph_->SetTrajectoryDataFromProto(proto.trajectory_data());
+    }
+    if (!load_frozen_state) {
+      if (proto.has_imu_data()) {
+>>>>>>> master
         pose_graph_->AddImuData(
             trajectory_remapping.at(proto.imu_data().trajectory_id()),
             sensor::FromProto(proto.imu_data().imu_data()));

@@ -20,7 +20,6 @@
 #include "cartographer/mapping/pose_graph.h"
 #include "cartographer/mapping/proto/trajectory_builder_options.pb.h"
 
-// Helper function to serialize a PoseGraph to a protobuf stream.
 namespace cartographer {
 namespace io {
 
@@ -28,7 +27,7 @@ namespace io {
 static constexpr int kMappingStateSerializationFormatVersion = 1;
 
 // Serialize mapping state to a pbstream.
-void ToPbStream(
+void WritePbStream(
     const mapping::PoseGraph& pose_graph,
     const std::vector<mapping::proto::TrajectoryBuilderOptionsWithSensorIds>&
         builder_options,
