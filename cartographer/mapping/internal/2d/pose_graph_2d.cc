@@ -42,6 +42,8 @@ namespace cartographer {
 namespace mapping {
 
 static auto* kWorkQueueDelayMetric = metrics::Gauge::Null();
+static auto* kConstraintsSameTrajectoryMetric = metrics::Gauge::Null();
+static auto* kConstraintsDifferentTrajectoryMetric = metrics::Gauge::Null();
 
 PoseGraph2D::PoseGraph2D(
     const proto::PoseGraphOptions& options,
@@ -478,6 +480,25 @@ void PoseGraph2D::HandleWorkQueue(
         trimmers_.end());
 
     num_nodes_since_last_loop_closure_ = 0;
+
+    // Update the gauges that count the current number of constraints.
+    double inter_constraints_same_trajectory = 0;
+    double inter_constraints_different_trajectory = 0;
+    for (const auto& constraint : data_.constraints) {
+      if (constraint.tag ==
+          cartographer::mapping::PoseGraph::Constraint::INTRA_SUBMAP) {
+        continue;
+      }
+      if (constraint.node_id.trajectory_id ==
+          constraint.submap_id.trajectory_id) {
+        ++inter_constraints_same_trajectory;
+      } else {
+        ++inter_constraints_different_trajectory;
+      }
+    }
+    kConstraintsSameTrajectoryMetric->Set(inter_constraints_same_trajectory);
+    kConstraintsDifferentTrajectoryMetric->Set(
+        inter_constraints_different_trajectory);
   }
 
   DrainWorkQueue();
@@ -906,10 +927,12 @@ std::map<std::string, transform::Rigid3d> PoseGraph2D::GetLandmarkPoses()
 }
 
 void PoseGraph2D::SetLandmarkPose(const std::string& landmark_id,
-                                  const transform::Rigid3d& global_pose) {
+                                  const transform::Rigid3d& global_pose,
+                                  const bool frozen) {
   AddWorkItem([=]() LOCKS_EXCLUDED(mutex_) {
     absl::MutexLock locker(&mutex_);
     data_.landmark_nodes[landmark_id].global_landmark_pose = global_pose;
+    data_.landmark_nodes[landmark_id].frozen = frozen;
     return WorkItem::Result::kDoNotRunOptimization;
   });
 }
@@ -1205,6 +1228,13 @@ void PoseGraph2D::RegisterMetrics(metrics::FamilyFactory* family_factory) {
       "mapping_2d_pose_graph_work_queue_delay",
       "Age of the oldest entry in the work queue in seconds");
   kWorkQueueDelayMetric = latency->Add({});
+  auto* constraints = family_factory->NewGaugeFamily(
+      "mapping_2d_pose_graph_constraints",
+      "Current number of constraints in the pose graph");
+  kConstraintsDifferentTrajectoryMetric =
+      constraints->Add({{"tag", "inter_submap"}, {"trajectory", "different"}});
+  kConstraintsSameTrajectoryMetric =
+      constraints->Add({{"tag", "inter_submap"}, {"trajectory", "same"}});
 }
 
 }  // namespace mapping
